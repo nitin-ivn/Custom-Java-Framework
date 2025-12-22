@@ -5,50 +5,89 @@ import io.nitin.annotations.Service;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 public class Container {
-    private Map<Class<?>, Object> services = new HashMap<>();
-    private Set<Class<?>> annotatedClasses;
 
-    public Container() throws Exception {
-        annotatedClasses = ComponentScanner.scan();
-        for (Class<?> clazz : annotatedClasses) {
-            if (clazz.isAnnotationPresent(Service.class)) {
-                services.put(clazz, clazz.getDeclaredConstructor().newInstance());
+    private Map<Class<?>, BeanDefinition> registry = new HashMap<>();
+    private Map<Class<?>, Object> singletonCache = new HashMap<>();
+    private Set<Class<?>> inCreation = new HashSet<>();
+
+
+
+    public Container() throws Exception{
+        registry = ComponentScanner.scan();
+
+        for(BeanDefinition def : registry.values()){
+            if(def.isSingleton()){
+                getBean(def.getBeanClass());
             }
         }
 
-        for (Object service : services.values()) {
-            for (Field field : service.getClass().getDeclaredFields()) {
-                if (field.isAnnotationPresent(Inject.class)) {
+
+    }
+
+    private <T>T getBean(Class<T> clazz){
+        BeanDefinition def = registry.get(clazz);
+
+        if(def.isSingleton()){
+            if(singletonCache.containsKey(clazz)){
+                return clazz.cast(singletonCache.get(clazz));
+            }
+        }
+
+        return createBean(clazz, def);
+    }
+
+    private <T> T createBean(Class<T> clazz, BeanDefinition def) {
+        try{
+            if(!def.isSingleton()){
+                if(inCreation.contains(clazz)){
+                    throw new Exception("Circular Dependency");
+                }
+                inCreation.add(clazz);
+            }
+            T instance = clazz.getDeclaredConstructor().newInstance();
+            if(def.isSingleton()) singletonCache.put(clazz, instance);
+
+            for(Field field : clazz.getDeclaredFields()){
+                if(field.isAnnotationPresent(Inject.class)){
                     field.setAccessible(true);
                     Object dependency = getDependency(field.getType());
-                    if (dependency == null) {
+                    if(dependency == null){
                         System.out.println("Will be handled by custom exceptions later");
                         throw new Exception();
                     }
-                    field.set(service, dependency);
+                    field.set(instance,dependency);
                 }
             }
+            inCreation.remove(clazz);
+
+            return instance;
+        } catch (Exception e){
+            throw new RuntimeException("Failed to create bean: " + clazz.getName(), e);
         }
     }
 
+
+
+
     private Object getDependency(Class<?> type){
-        if(services.containsKey(type)){
-            return services.get(type);
+        BeanDefinition def = registry.get(type);
+        if(def != null){
+            return getBean(type);
         }
 
-        for(Class<?> clazz : services.keySet()){
+        for(Map.Entry<Class<?>, BeanDefinition> entry : registry.entrySet()){
+            Class<?> clazz = entry.getKey();
             if(type.isAssignableFrom(clazz)){
-                return services.get(clazz);
+                return getBean(clazz);
             }
         }
+
         return null;
     }
 
-    public <T> T getService(Class<T> clazz) {
-        return clazz.cast(services.get(clazz));
-    }
 }
