@@ -1,21 +1,23 @@
 package io.nitin.di;
 
+import io.nitin.annotations.Scope;
 import io.nitin.annotations.Service;
+import io.nitin.enums.ScopeType;
 
 import java.io.File;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ComponentScanner {
     private static final String packageName = "io.nitin.demo";
 
-    public static Set<Class<?>> scan() {
+    public static Map<Class<?>,BeanDefinition> scan() {
         return scanPackage(packageName);
     }
 
-    private static Set<Class<?>> scanPackage(String pkgName){
-        Set<Class<?>> set = new HashSet<>();
+    private static Map<Class<?>,BeanDefinition> scanPackage(String pkgName){
+        Map<Class<?>,BeanDefinition> map = new HashMap<>();
 
         try{
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -27,16 +29,24 @@ public class ComponentScanner {
                 File directory = new File(url.toURI());
                 File[] files = directory.listFiles();
 
-                if(files == null) return set;
+                if(files == null) return map;
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        set.addAll(scanPackage(pkgName + "." + file.getName()));
+                        map.putAll(scanPackage(pkgName + "." + file.getName()));
                     } else if (file.getName().endsWith(".class")) {
                         if (file.getName().contains("$")) continue;
                         String className = pkgName + '.' + file.getName().substring(0, file.getName().length() - 6);
                         Class<?> clazz = Class.forName(className);
                         if (clazz.isAnnotationPresent(Service.class)) {
-                            set.add(clazz);
+                            boolean isSingleton = true;
+                            if(clazz.isAnnotationPresent(Scope.class)){
+                                Scope scope = clazz.getAnnotation(Scope.class);
+                                if(scope.value() == ScopeType.PROTOTYPE){
+                                    isSingleton = false;
+                                }
+                            }
+                            map.put(clazz,new BeanDefinition(clazz, isSingleton));
+
                         }
                     }
                 }
@@ -45,6 +55,6 @@ public class ComponentScanner {
             e.printStackTrace();
         }
 
-        return set;
+        return map;
     }
 }
