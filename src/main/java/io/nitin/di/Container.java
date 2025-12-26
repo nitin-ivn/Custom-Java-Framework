@@ -1,7 +1,9 @@
 package io.nitin.di;
 
 import io.nitin.annotations.Inject;
-import io.nitin.annotations.Service;
+import io.nitin.di.Exceptions.BeanInitializationException;
+import io.nitin.di.Exceptions.BeanNotFoundException;
+import io.nitin.di.Exceptions.CircularDependencyException;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -11,13 +13,13 @@ import java.util.Set;
 
 public class Container {
 
-    private Map<Class<?>, BeanDefinition> registry = new HashMap<>();
-    private Map<Class<?>, Object> singletonCache = new HashMap<>();
-    private Set<Class<?>> inCreation = new HashSet<>();
+    private final Map<Class<?>, BeanDefinition> registry;
+    private final Map<Class<?>, Object> singletonCache = new HashMap<>();
+    private final Set<Class<?>> inCreation = new HashSet<>();
 
 
 
-    public Container() throws Exception{
+    public Container(){
         registry = ComponentScanner.scan();
 
         for(BeanDefinition def : registry.values()){
@@ -45,7 +47,7 @@ public class Container {
         try{
             if(!def.isSingleton()){
                 if(inCreation.contains(clazz)){
-                    throw new Exception("Circular Dependency");
+                    throw new CircularDependencyException("Circular dependency detected for: " + clazz.getName());
                 }
                 inCreation.add(clazz);
             }
@@ -57,17 +59,20 @@ public class Container {
                     field.setAccessible(true);
                     Object dependency = getDependency(field.getType());
                     if(dependency == null){
-                        System.out.println("Will be handled by custom exceptions later");
-                        throw new Exception();
+                        throw new BeanNotFoundException("Class or Subclass not Found for the: " + clazz.getName());
                     }
                     field.set(instance,dependency);
                 }
             }
-            inCreation.remove(clazz);
-
             return instance;
+        } catch (NoSuchMethodException e) {
+            throw new BeanInitializationException("No default constructor found for: " + clazz.getName());
+        } catch (ReflectiveOperationException e) {
+            throw new BeanInitializationException("Failed to instantiate: " + clazz.getName(), e);
         } catch (Exception e){
             throw new RuntimeException("Failed to create bean: " + clazz.getName(), e);
+        } finally {
+            inCreation.remove(clazz);
         }
     }
 
