@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="a7b2feab-2647-471d-b402-8f3acb5cd789" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/nitin/di/Container.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/nitin/di/Container.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,8 +17,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Enum" />
-        <option value="AnnotationType" />
         <option value="Class" />
+        <option value="AnnotationType" />
         <option value="Interface" />
       </list>
     </option>
@@ -66,7 +67,7 @@
       <workItem from="1766118878329" duration="3453000" />
       <workItem from="1766154071924" duration="6649000" />
       <workItem from="1767093796993" duration="5000" />
-      <workItem from="1767175219209" duration="9145000" />
+      <workItem from="1767175219209" duration="12118000" />
     </task>
     <servers />
   </component>

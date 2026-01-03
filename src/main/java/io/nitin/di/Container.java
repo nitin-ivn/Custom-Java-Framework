@@ -21,6 +21,10 @@ public class Container implements BeanFactory {
     private final Set<Class<?>> inCreation = new HashSet<>();
     private final List<BeanPostProcessor> postProcessors = new ArrayList<>();
 
+    public Map<?, BeanDefinition> getRegistry(){
+        return registry;
+    }
+
 
     public Container(){
         registry = ComponentScanner.scan();
